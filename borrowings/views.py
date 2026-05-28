@@ -19,5 +19,5 @@ class BorrowingReadOnlyViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated:
-            return Borrowing.objects.filter(user=user)
+            return Borrowing.objects.filter(user=user, actual_return_date__isnull=True)
         return Borrowing.objects.none()
