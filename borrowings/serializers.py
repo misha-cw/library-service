@@ -1,3 +1,5 @@
+from datetime import date
+
 from rest_framework import serializers
 from django.db import transaction
 
@@ -29,12 +31,22 @@ class BorrowingDetailSerializer(BorrowingSerializer):
 class BorrowingCreateSerializer(BorrowingSerializer):
     class Meta(BorrowingSerializer.Meta):
         fields = BorrowingSerializer.Meta.fields + ("user",)
-        read_only_fields = BorrowingSerializer.Meta.read_only_fields + ("user",)
+        read_only_fields = BorrowingSerializer.Meta.read_only_fields + (
+            "user",
+            "actual_return_date",
+        )
 
     def validate(self, attrs):
         book = attrs.get("book")
         if book and book.inventory <= 0:
             raise serializers.ValidationError("This book is currently unavailable.")
+        expected_return_date = attrs.get("expected_return_date")
+
+        if expected_return_date and expected_return_date < date.today():
+            raise serializers.ValidationError(
+                "Expected return date cannot be in the past."
+            )
+
         return attrs
 
     def create(self, validated_data):
