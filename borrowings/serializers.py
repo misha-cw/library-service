@@ -56,3 +56,7 @@ class BorrowingCreateSerializer(BorrowingSerializer):
                 book.inventory -= 1
                 book.save()
             return super().create(validated_data)
+
+
+class BorrowingReturnSerializer(serializers.Serializer):
+    pass
