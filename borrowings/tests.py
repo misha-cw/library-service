@@ -30,7 +30,26 @@ def sample_book(**params):
     return Book.objects.create(**defaults)
 
 
-class PublicBorrowingsApiTests(TestCase):
+class UnauthenticatedBorrowingsApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_unauthenticated_user_cannot_access_borrowings(self):
+        res = self.client.get(URL)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_unauthenticated_user_cannot_create_borrowing(self):
+        book = sample_book()
+        payload = {
+            "book": book.id,
+        }
+        res = self.client.post(URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class AuthenticatedBorrowingsApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = USER.objects.create_user(
@@ -38,18 +57,14 @@ class PublicBorrowingsApiTests(TestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-    def test_unauthenticated_user_empty_list(self):
-        self.client.force_authenticate(user=None)
-        res = self.client.get(URL)
-
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, [])
-
+    @freeze_time("2026-01-01")
     def test_list_borrowings(self):
         book1 = sample_book()
         book2 = sample_book(title="To Kill a Mockingbird", author="Harper Lee")
         Borrowing.objects.create(user=self.user, book=book1)
-        Borrowing.objects.create(user=self.user, book=book2)
+        Borrowing.objects.create(
+            user=self.user, book=book2, actual_return_date="2026-01-15"
+        )
 
         res = self.client.get(URL)
         borrowings = Borrowing.objects.filter(user=self.user)
@@ -59,14 +74,21 @@ class PublicBorrowingsApiTests(TestCase):
         self.assertEqual(res.data, serializer.data)
 
     @freeze_time("2026-01-01")
-    def test_list_borrowings_excludes_returned(self):
+    def test_list_borrowings_filters_by_active(self):
         book = sample_book()
-        borrowing = Borrowing.objects.create(
+        Borrowing.objects.create(user=self.user, book=book)
+        Borrowing.objects.create(
             user=self.user, book=book, actual_return_date="2026-02-01"
         )
-        res = self.client.get(URL)
+
+        res = self.client.get(URL, {"is_active": "true"})
+        borrowings = Borrowing.objects.filter(
+            user=self.user, actual_return_date__isnull=True
+        )
+        serializer = BorrowingListSerializer(borrowings, many=True)
+
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, [])
+        self.assertEqual(res.data, serializer.data)
 
     def test_retrieve_borrowing(self):
         book = sample_book()
@@ -77,6 +99,16 @@ class PublicBorrowingsApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_retrieve_borrowing_not_owned(self):
+        other_user = USER.objects.create_user(
+            email="other@gmail.com", password="otherpass"
+        )
+        book = sample_book()
+        borrowing = Borrowing.objects.create(user=other_user, book=book)
+
+        res = self.client.get(detail_url(borrowing.id))
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
     @freeze_time("2026-01-01")
     def test_create_borrowing(self):
@@ -105,3 +137,52 @@ class PublicBorrowingsApiTests(TestCase):
         }
         res = self.client.post(URL, payload)
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class AdminBorrowingsApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin_user = USER.objects.create_superuser(
+            email="admin@gmail.com", password="adminpass"
+        )
+        self.client.force_authenticate(user=self.admin_user)
+        self.user1 = USER.objects.create_user(
+            email="user1@gmail.com", password="userpass"
+        )
+        self.user2 = USER.objects.create_user(
+            email="user2@gmail.com", password="userpass"
+        )
+
+    def test_admin_list_borrowings(self):
+        book = sample_book()
+        Borrowing.objects.create(user=self.user1, book=book)
+        Borrowing.objects.create(user=self.user2, book=book)
+
+        res = self.client.get(URL)
+        borrowings = Borrowing.objects.all()
+        serializer = BorrowingListSerializer(borrowings, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_admin_list_borrowings_filter_by_user(self):
+        book = sample_book()
+        Borrowing.objects.create(user=self.user1, book=book)
+        Borrowing.objects.create(user=self.user2, book=book)
+
+        res = self.client.get(URL, {"user_id": self.user1.id})
+        borrowings = Borrowing.objects.filter(user=self.user1)
+        serializer = BorrowingListSerializer(borrowings, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_admin_retrieve_borrowing(self):
+        book = sample_book()
+        borrowing = Borrowing.objects.create(user=self.user1, book=book)
+
+        res = self.client.get(detail_url(borrowing.id))
+        serializer = BorrowingDetailSerializer(borrowing)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
