@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -136,6 +138,34 @@ class AuthenticatedBorrowingsApiTests(TestCase):
             "book": book.id,
         }
         res = self.client.post(URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @freeze_time("2026-01-01")
+    def test_return_book(self):
+        book = sample_book()
+        borrowing = Borrowing.objects.create(user=self.user, book=book)
+
+        res = self.client.post(
+            reverse("borrowings:borrowing-return-book", args=[borrowing.id])
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        borrowing.refresh_from_db()
+        self.assertEqual(borrowing.actual_return_date, date.today())
+        book.refresh_from_db()
+        self.assertEqual(book.inventory, 6)
+
+    @freeze_time("2026-01-01")
+    def test_return_book_already_returned(self):
+        book = sample_book()
+        borrowing = Borrowing.objects.create(
+            user=self.user, book=book, actual_return_date="2026-01-15"
+        )
+
+        res = self.client.post(
+            reverse("borrowings:borrowing-return-book", args=[borrowing.id])
+        )
+
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
 
