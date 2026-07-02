@@ -1,6 +1,8 @@
 from datetime import date
 
 from django.db import transaction
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework import generics, viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -56,7 +58,10 @@ class BorrowingViewSet(
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(
+    @extend_schema(
+        description="Mark a borrowed book as returned. The actual return date will be set to the current date, and the book's inventory will be updated.",
+    )
+    @action(  
         detail=True,
         methods=("POST",),
         url_path="return",
@@ -79,3 +84,23 @@ class BorrowingViewSet(
             book.save()
 
         return Response(status=status.HTTP_200_OK)
+    
+    @extend_schema(
+        description="Retrieve a list of user borrowings, can be filtered by is_active. Admins can filter by user_id.",
+        parameters=[
+            OpenApiParameter(
+                name="user_id",
+                description="Filter borrowings by user ID (admin only)",
+                required=False,
+                type=OpenApiTypes.INT
+            ),
+            OpenApiParameter(
+                name="is_active",
+                description="Filter borrowings by active status",
+                required=False,
+                type=OpenApiTypes.BOOL
+            )
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
