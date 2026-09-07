@@ -3,7 +3,8 @@ from datetime import date
 from django.db import transaction
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
-from rest_framework import generics, viewsets, mixins, status
+from rest_framework import viewsets, mixins, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -17,6 +18,10 @@ from borrowings.serializers import (
     BorrowingDetailSerializer,
 )
 
+class BorrowingPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
 class BorrowingViewSet(
     mixins.CreateModelMixin,
@@ -25,6 +30,7 @@ class BorrowingViewSet(
     viewsets.GenericViewSet,
 ):
     queryset = Borrowing.objects.all()
+    pagination_class = BorrowingPagination
     permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):

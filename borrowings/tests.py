@@ -24,7 +24,7 @@ def sample_book(**params):
         "title": "The Great Gatsby",
         "author": "F. Scott Fitzgerald",
         "cover": Book.CoverType.HARD,
-        "inventory": 5,
+        "inventory": 20,
         "daily_fee": 1.50,
     }
     defaults.update(params)
@@ -73,7 +73,28 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         serializer = BorrowingListSerializer(borrowings, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.data["results"], serializer.data)
+
+    def test_list_borrowings_pagination(self):
+        book = sample_book()
+        for _ in range(15):
+            Borrowing.objects.create(user=self.user, book=book)
+
+        res = self.client.get(URL)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["count"], 15)
+        self.assertEqual(len(res.data["results"]), 10)
+        self.assertIsNotNone(res.data["next"])
+        self.assertIsNone(res.data["previous"])
+
+        res_next_page = self.client.get(res.data["next"])
+
+        self.assertEqual(res_next_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_next_page.data["results"]), 5)
+        self.assertIsNotNone(res_next_page.data["previous"])
+        self.assertIsNone(res_next_page.data["next"])
+
 
     @freeze_time("2026-01-01")
     def test_list_borrowings_filters_by_active(self):
@@ -90,7 +111,7 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         serializer = BorrowingListSerializer(borrowings, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.data["results"], serializer.data)\
 
     def test_retrieve_borrowing(self):
         book = sample_book()
@@ -130,7 +151,7 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         self.assertEqual(str(borrowing.expected_return_date), "2026-02-01")
         self.assertIsNone(borrowing.actual_return_date)
         book.refresh_from_db()
-        self.assertEqual(book.inventory, 4)
+        self.assertEqual(book.inventory, 19)
 
     def test_create_borrowing_unavailable_book(self):
         book = sample_book(inventory=0)
@@ -153,7 +174,7 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         borrowing.refresh_from_db()
         self.assertEqual(borrowing.actual_return_date, date.today())
         book.refresh_from_db()
-        self.assertEqual(book.inventory, 6)
+        self.assertEqual(book.inventory, 21)
 
     @freeze_time("2026-01-01")
     def test_return_book_already_returned(self):
@@ -193,7 +214,7 @@ class AdminBorrowingsApiTests(TestCase):
         serializer = BorrowingListSerializer(borrowings, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.data["results"], serializer.data)
 
     def test_admin_list_borrowings_filter_by_user(self):
         book = sample_book()
@@ -205,7 +226,7 @@ class AdminBorrowingsApiTests(TestCase):
         serializer = BorrowingListSerializer(borrowings, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.data["results"], serializer.data)
 
     def test_admin_retrieve_borrowing(self):
         book = sample_book()
