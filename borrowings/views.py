@@ -67,7 +67,8 @@ class BorrowingViewSet(
         serializer.save(user=self.request.user)
 
     @extend_schema(
-        description="Mark a borrowed book as returned. The actual return date will be set to the current date, and the book's inventory will be updated.",
+        description="Mark a borrowed book as returned. "
+        "The actual return date will be set to the current date, and the book's inventory will be updated.",
     )
     @action(
         detail=True,
