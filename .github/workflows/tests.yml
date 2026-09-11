@@ -46,6 +46,7 @@ jobs:
 
       - name: Run tests
         env:
+          SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           POSTGRES_DB: library
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
