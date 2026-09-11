@@ -95,7 +95,6 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         self.assertIsNotNone(res_next_page.data["previous"])
         self.assertIsNone(res_next_page.data["next"])
 
-
     @freeze_time("2026-01-01")
     def test_list_borrowings_filters_by_active(self):
         book = sample_book()
@@ -111,7 +110,7 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         serializer = BorrowingListSerializer(borrowings, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data["results"], serializer.data)\
+        self.assertEqual(res.data["results"], serializer.data)
 
     def test_retrieve_borrowing(self):
         book = sample_book()
