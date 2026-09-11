@@ -36,7 +36,61 @@ class PublicBooksApiTests(TestCase):
         serializer = BookListSerializer(books, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(res.data["results"], serializer.data)
+
+    def test_filter_books_by_title(self):
+        Book.objects.create(
+            title="To Kill a Mockingbird",
+            author="Harper Lee",
+            cover=Book.CoverType.SOFT,
+            inventory=3,
+            daily_fee=1.00,
+        )
+        res = self.client.get(URL, {"title": "Mockingbird"})
+        books = Book.objects.filter(title__icontains="Mockingbird")
+        serializer = BookListSerializer(books, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["results"], serializer.data)
+
+    def test_filter_books_by_author(self):
+        Book.objects.create(
+            title="To Kill a Mockingbird",
+            author="Harper Lee",
+            cover=Book.CoverType.SOFT,
+            inventory=3,
+            daily_fee=1.00,
+        )
+        res = self.client.get(URL, {"author": "Lee"})
+        books = Book.objects.filter(author__icontains="Lee")
+        serializer = BookListSerializer(books, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["results"], serializer.data)
+
+    def test_pagination_books(self):
+        for i in range(15):
+            Book.objects.create(
+                title=f"Book {i}",
+                author=f"Author {i}",
+                cover=Book.CoverType.SOFT,
+                inventory=2,
+                daily_fee=0.75,
+            )
+
+        res = self.client.get(URL)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data["results"]), 10)
+        self.assertEqual(res.data["count"], 16)
+        self.assertIsNotNone(res.data["next"])
+        self.assertIsNone(res.data["previous"])
+
+        res_next_page = self.client.get(res.data["next"])
+        self.assertEqual(res_next_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res_next_page.data["results"]), 6)
+        self.assertIsNone(res_next_page.data["next"])
+        self.assertIsNotNone(res_next_page.data["previous"])
 
     def test_retrieve_book(self):
         res = self.client.get(detail_url(self.book.id))
