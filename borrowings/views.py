@@ -18,10 +18,12 @@ from borrowings.serializers import (
     BorrowingDetailSerializer,
 )
 
+
 class BorrowingPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
     max_page_size = 100
+
 
 class BorrowingViewSet(
     mixins.CreateModelMixin,
@@ -65,9 +67,10 @@ class BorrowingViewSet(
         serializer.save(user=self.request.user)
 
     @extend_schema(
-        description="Mark a borrowed book as returned. The actual return date will be set to the current date, and the book's inventory will be updated.",
+        description="Mark a borrowed book as returned. "
+        "The actual return date will be set to the current date, and the book's inventory will be updated.",
     )
-    @action(  
+    @action(
         detail=True,
         methods=("POST",),
         url_path="return",
@@ -90,7 +93,7 @@ class BorrowingViewSet(
             book.save()
 
         return Response(status=status.HTTP_200_OK)
-    
+
     @extend_schema(
         description="Retrieve a list of user borrowings, can be filtered by is_active. Admins can filter by user_id.",
         parameters=[
@@ -98,14 +101,14 @@ class BorrowingViewSet(
                 name="user_id",
                 description="Filter borrowings by user ID (admin only)",
                 required=False,
-                type=OpenApiTypes.INT
+                type=OpenApiTypes.INT,
             ),
             OpenApiParameter(
                 name="is_active",
                 description="Filter borrowings by active status",
                 required=False,
-                type=OpenApiTypes.BOOL
-            )
+                type=OpenApiTypes.BOOL,
+            ),
         ],
     )
     def list(self, request, *args, **kwargs):

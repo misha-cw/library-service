@@ -7,6 +7,7 @@ from books.models import Book
 from books.permissions import IsAdminOrReadOnly
 from books.serializers import BookListSerializer, BookSerializer
 
+
 class BookPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
@@ -37,15 +38,13 @@ class BookViewset(viewsets.ModelViewSet):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                name="title",
-                type=OpenApiTypes.STR,
-                description="Filter books by title"
+                name="title", type=OpenApiTypes.STR, description="Filter books by title"
             ),
             OpenApiParameter(
                 name="author",
                 type=OpenApiTypes.STR,
-                description="Filter books by author"
-            )
+                description="Filter books by author",
+            ),
         ]
     )
     def list(self, request, *args, **kwargs):
