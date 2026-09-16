@@ -52,4 +52,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
-        run: python manage.py test
+        run: 
+          coverage run manage.py test
+          coverage report
