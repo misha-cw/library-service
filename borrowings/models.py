@@ -15,7 +15,7 @@ class Borrowing(models.Model):
     )
 
     class Meta:
-        ordering = ["-borrow_date"]
+        ordering = ["-id"]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(expected_return_date__gte=models.F("borrow_date")),
