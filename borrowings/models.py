@@ -1,6 +1,6 @@
 from django.db import models
 
-from config.settings import AUTH_USER_MODEL
+from django.conf import settings
 
 
 class Borrowing(models.Model):
@@ -11,11 +11,11 @@ class Borrowing(models.Model):
         "books.Book", on_delete=models.CASCADE, related_name="borrowings"
     )
     user = models.ForeignKey(
-        AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="borrowings"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="borrowings"
     )
 
     class Meta:
-        ordering = ["-borrow_date"]
+        ordering = ["-id"]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(expected_return_date__gte=models.F("borrow_date")),

@@ -112,6 +112,23 @@ class AuthenticatedBorrowingsApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["results"], serializer.data)
 
+    @freeze_time("2026-01-01")
+    def test_list_borrowings_filters_by_inactive(self):
+        book = sample_book()
+        Borrowing.objects.create(user=self.user, book=book)
+        Borrowing.objects.create(
+            user=self.user, book=book, actual_return_date="2026-02-01"
+        )
+
+        res = self.client.get(URL, {"is_active": "false"})
+        borrowings = Borrowing.objects.filter(
+            user=self.user, actual_return_date__isnull=False
+        )
+        serializer = BorrowingListSerializer(borrowings, many=True)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["results"], serializer.data)
+
     def test_retrieve_borrowing(self):
         book = sample_book()
         borrowing = Borrowing.objects.create(user=self.user, book=book)

@@ -48,7 +48,7 @@ class BorrowingViewSet(
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Borrowing.objects.all()
+        queryset = Borrowing.objects.select_related("book", "user").all()
         if user.is_staff:
             user_id = self.request.query_params.get("user_id")
             if user_id:
@@ -58,8 +58,10 @@ class BorrowingViewSet(
 
         is_active = self.request.query_params.get("is_active")
 
-        if is_active:
+        if is_active == "true":
             queryset = queryset.filter(actual_return_date__isnull=True)
+        elif is_active == "false":
+            queryset = queryset.filter(actual_return_date__isnull=False)
 
         return queryset
 
