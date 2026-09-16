@@ -34,9 +34,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install black flake8
+        run: pip install -r requirements.txt
 
       - name: Check formatting with Black
         run: black --check .
@@ -52,6 +50,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
-        run: 
+        run: |
           coverage run manage.py test
           coverage report
