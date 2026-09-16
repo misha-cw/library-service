@@ -59,6 +59,7 @@ Set these env vars before running (or use a `.env` loader):
 | `POSTGRES_PASSWORD` | Database password | `library` |
 | `POSTGRES_HOST` | Database host | `db` |
 | `POSTGRES_PORT` | Database port | `5432` |
+| `DEBUG` | Debug mode | `True`/`False` |
  
 ```bash
 python manage.py migrate
